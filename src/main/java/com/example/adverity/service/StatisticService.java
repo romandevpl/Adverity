@@ -2,19 +2,14 @@ package com.example.adverity.service;
 
 import com.example.adverity.model.Statistic;
 import com.example.adverity.repository.StatisticRepository;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -29,27 +24,12 @@ public class StatisticService {
     }
 
     public void extractAndSaveData() {
-        CSVFormat csvFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withIgnoreHeaderCase();
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yy");
-
-        try (CSVParser csvParser = CSVParser.parse(url, StandardCharsets.UTF_8, csvFormat)) {
-            for (CSVRecord csvRecord : csvParser) {
-                Statistic statistic = new Statistic(
-                        csvRecord.get("Datasource"),
-                        csvRecord.get("Campaign"),
-                        LocalDate.parse(csvRecord.get("Daily"), dateTimeFormatter),
-                        Long.parseLong(csvRecord.get("Clicks")),
-                        Long.parseLong(csvRecord.get("Impressions")));
-
-                repository.saveAndFlush(statistic);
-            }
-            logger.info("CSV file parsed.");
-        } catch (IOException e) {
-            System.out.println("Error occurred while loading object list from file " + e.getMessage());
+        try {
+            var result = CsvService.loadObjectList(url);
+            repository.saveAll(result);
+        } catch (MalformedURLException e) {
+            logger.error("Wrong URL to CSV file ", e);
         }
-//        } catch (MalformedURLException e) {
-//            logger.error("Wrong URL to CSV file ", e);
-//        }
     }
 
     public List<Statistic> getStatistics() {
